@@ -14,7 +14,7 @@ def rgb(r, g, b):
 small_ring_radius = 28
 big_ring_radius = int(small_ring_radius * 2 / (3 ** 0.5))
 small_ring_center_offset = 3 ** 0.5 / 6 * 2 * small_ring_radius / 2
-tri_perpendicular_length = 3 ** 0.5 / 3 * small_ring_radius
+tri_perpendicular = 3 ** 0.5 / 3 * small_ring_radius
 
 
 def get_circle(p1, p2, p3):
@@ -32,18 +32,20 @@ def draw_radius(v, circle_center, circle_radius, precision=0.7):
 
 n = 64
 center_pos = [0, 10]
-big_ring, big_radius = get_circle((center_pos[0] + small_ring_radius, center_pos[1] + tri_perpendicular_length),
-                                  (center_pos[0] - small_ring_radius, center_pos[1] + tri_perpendicular_length),
-                                  (center_pos[0], center_pos[1] - tri_perpendicular_length * 2))
+big_ring, big_radius = get_circle((center_pos[0] + small_ring_radius, center_pos[1] + tri_perpendicular),
+                                  (center_pos[0] - small_ring_radius, center_pos[1] + tri_perpendicular),
+                                  (center_pos[0], center_pos[1] - tri_perpendicular * 2))
 
 
 @ti.func
-def draw_arc(v, circle_center, circle_radius, down_vector, max_degree=30, precision=0.7):
+def draw_arc(v, circle_center, circle_radius, max_degree=30, precision=0.7):
     # acos always equal pi/2 because f32 precision, now ti don't support f64 acos function
+    # down_vector = ti.Vector([0, -1])
     # ob = v - circle_center
     # dotValue = ti.math.dot(ob, down_vector)
     # degree = ti.math.degrees(ti.acos(dotValue / (down_vector.norm() * ob.norm())))
     return ti.abs(ti.math.distance(v, circle_center) - circle_radius) <= precision and ti.abs(v[0]) <= max_degree
+
 
 @ti.func
 def draw_line(v, height_edge_bottom, height_edge_top, edge):
@@ -58,19 +60,17 @@ def initialize_voxels():
     big_ring_center = ti.Vector([big_ring[0], big_ring[1]])
     ring1_center = ti.Vector([center_pos[0] + small_ring_radius / 2, center_pos[1] + small_ring_center_offset])
     ring2_center = ti.Vector([center_pos[0] - small_ring_radius / 2, center_pos[1] + small_ring_center_offset])
-    ring3_center = ti.Vector([center_pos[0], center_pos[1] - tri_perpendicular_length])
+    ring3_center = ti.Vector([center_pos[0], center_pos[1] - tri_perpendicular])
 
-    arc1_center = ti.Vector([center_pos[0], center_pos[1] - tri_perpendicular_length - 50 / 31 * small_ring_radius])
-    arc2_center = ti.Vector([center_pos[0], center_pos[1] - tri_perpendicular_length - ((5 + 31) / 31 * small_ring_radius)])
-    arc_big_center = ti.Vector([center_pos[0], center_pos[1] - tri_perpendicular_length - (149 / 31 * small_ring_radius)])
+    arc1_center = ti.Vector([center_pos[0], center_pos[1] - tri_perpendicular - 50 / 31 * small_ring_radius])
+    arc2_center = ti.Vector([center_pos[0], center_pos[1] - tri_perpendicular - ((5 + 31) / 31 * small_ring_radius)])
+    arc_big_center = ti.Vector([center_pos[0], center_pos[1] - tri_perpendicular - (149 / 31 * small_ring_radius)])
     arc_center1_radius = 50 / 31 * small_ring_radius
     arc_center2_radius = 67 / 31 * small_ring_radius
     arc_center3_radius = 97 / 31 * small_ring_radius
 
-    line_height_low = big_ring_center[1] + big_radius + tri_perpendicular_length / 3
+    line_height_low = big_ring_center[1] + big_radius + tri_perpendicular / 3
     line_height_top = arc_big_center[1] + arc_center3_radius
-
-    down_vector = ti.Vector([0, -1])
 
     for i, j in ti.ndrange((-n, n), (-n, n)):
         v = ti.Vector([i, j])
@@ -78,9 +78,9 @@ def initialize_voxels():
                 or draw_radius(v, ring1_center, small_ring_radius, 0.8) \
                 or draw_radius(v, ring2_center, small_ring_radius, 0.8) \
                 or draw_radius(v, ring3_center, small_ring_radius, 0.8) \
-                or draw_arc(v, arc1_center, arc_center1_radius, down_vector, 30, 0.5) \
-                or draw_arc(v, arc2_center, arc_center2_radius, down_vector, 45, 0.5) \
-                or draw_arc(v, arc_big_center, arc_center3_radius, down_vector, 32) \
+                or draw_arc(v, arc1_center, arc_center1_radius, 30, 0.5) \
+                or draw_arc(v, arc2_center, arc_center2_radius, 45, 0.5) \
+                or draw_arc(v, arc_big_center, arc_center3_radius, 32) \
                 or draw_line(v, line_height_top, line_height_low, 1):
             random = ti.random()
             if random < 0.001:
